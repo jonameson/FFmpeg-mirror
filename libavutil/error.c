@@ -62,6 +62,7 @@ static const struct error_entry error_entries[] = {
     { ERROR_TAG(HTTP_SERVER_ERROR),  "Server returned 5XX Server Error reply" },
     { ERROR_TAG(ICY_SERVER_FULL),    "Icy server full 400" },
     { ERROR_TAG(ICY_SERVER_OFFLINE), "Icy server offline 401" },
+    { ERROR_TAG(MMSH_PROTOCOL_NEEDED), "Please try using MMSH protocol" },
 #if !HAVE_STRERROR_R
     { EERROR_TAG(EINVAL),            "Invalid argument" },
 #endif
