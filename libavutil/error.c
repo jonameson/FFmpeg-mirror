@@ -60,6 +60,8 @@ static const struct error_entry error_entries[] = {
     { ERROR_TAG(HTTP_NOT_FOUND),     "Server returned 404 Not Found"           },
     { ERROR_TAG(HTTP_OTHER_4XX),     "Server returned 4XX Client Error, but not one of 40{0,1,3,4}" },
     { ERROR_TAG(HTTP_SERVER_ERROR),  "Server returned 5XX Server Error reply" },
+    { ERROR_TAG(ICY_SERVER_FULL),    "Icy server full 400" },
+    { ERROR_TAG(ICY_SERVER_OFFLINE), "Icy server offline 401" },
 #if !HAVE_STRERROR_R
     { EERROR_TAG(EINVAL),            "Invalid argument" },
 #endif
