@@ -130,6 +130,14 @@ static int mismatches_ref(H264Context *h, H264Picture *pic)
             h->cur_pic_ptr->f->format != f->format);
 }
 
+int ff_h264_fill_default_ref_list(H264Context *h, H264SliceContext *sl)
+{
+    AVFrame *f = pic->f;
+    return (h->cur_pic_ptr->f->width  != f->width ||
+            h->cur_pic_ptr->f->height != f->height ||
+            h->cur_pic_ptr->f->format != f->format);
+}
+
 static void h264_initialise_ref_list(H264Context *h, H264SliceContext *sl)
 {
     int i, len;
@@ -200,8 +208,8 @@ static void h264_initialise_ref_list(H264Context *h, H264SliceContext *sl)
 
     for (j = 0; j<1+(sl->slice_type_nos == AV_PICTURE_TYPE_B); j++) {
         for (i = 0; i < sl->ref_count[j]; i++) {
-            if (sl->ref_list[j][i].parent) {
-                if (mismatches_ref(h, sl->ref_list[j][i].parent)) {
+            if (h->default_ref_list[j][i].parent) {
+                if (mismatches_ref(h, h->default_ref_list[j][i].parent)) {
                     av_log(h->avctx, AV_LOG_ERROR, "Discarding mismatching reference\n");
                     memset(&sl->ref_list[j][i], 0, sizeof(sl->ref_list[j][i]));
                 }

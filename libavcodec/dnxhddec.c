@@ -452,30 +452,15 @@ static int dnxhd_decode_macroblock(const DNXHDContext *ctx, RowContext *row,
     int dct_linesize_chroma = frame->linesize[1];
     uint8_t *dest_y, *dest_u, *dest_v;
     int dct_y_offset, dct_x_offset;
-    int qscale, i, act;
+    int qscale, i;
     int interlaced_mb = 0;
 
-    if (ctx->mbaff) {
-        interlaced_mb = get_bits1(&row->gb);
-        qscale = get_bits(&row->gb, 10);
-    } else {
-        qscale = get_bits(&row->gb, 11);
-    }
-    act = get_bits1(&row->gb);
-    if (act) {
-        if (!ctx->act) {
-            static int act_warned;
-            if (!act_warned) {
-                act_warned = 1;
-                av_log(ctx->avctx, AV_LOG_ERROR,
-                       "ACT flag set, in violation of frame header.\n");
-            }
-        } else if (row->format == -1) {
-            row->format = act;
-        } else if (row->format != act) {
-            row->format = 2; // Variable
-        }
-    }
+    if (ctx->cid_table->cid == 1260) {
+        interlaced_mb = get_bits1(&ctx->gb);
+        qscale = get_bits(&ctx->gb, 10);
+    } else
+    qscale = get_bits(&ctx->gb, 11);
+    skip_bits1(&ctx->gb);
 
     if (qscale != row->last_qscale) {
         for (i = 0; i < 64; i++) {
@@ -519,10 +504,10 @@ static int dnxhd_decode_macroblock(const DNXHDContext *ctx, RowContext *row,
 
         if (!(ctx->avctx->flags & AV_CODEC_FLAG_GRAY)) {
             dct_y_offset = interlaced_mb ? frame->linesize[1] : (dct_linesize_chroma << 3);
-            ctx->idsp.idct_put(dest_u,                dct_linesize_chroma, row->blocks[2]);
-            ctx->idsp.idct_put(dest_v,                dct_linesize_chroma, row->blocks[3]);
-            ctx->idsp.idct_put(dest_u + dct_y_offset, dct_linesize_chroma, row->blocks[6]);
-            ctx->idsp.idct_put(dest_v + dct_y_offset, dct_linesize_chroma, row->blocks[7]);
+            ctx->idsp.idct_put(dest_u,                dct_linesize_chroma, ctx->blocks[2]);
+            ctx->idsp.idct_put(dest_v,                dct_linesize_chroma, ctx->blocks[3]);
+            ctx->idsp.idct_put(dest_u + dct_y_offset, dct_linesize_chroma, ctx->blocks[6]);
+            ctx->idsp.idct_put(dest_v + dct_y_offset, dct_linesize_chroma, ctx->blocks[7]);
         }
     } else {
         ctx->idsp.idct_put(dest_y,                               dct_linesize_luma, row->blocks[0]);
@@ -532,14 +517,14 @@ static int dnxhd_decode_macroblock(const DNXHDContext *ctx, RowContext *row,
 
         if (!(ctx->avctx->flags & AV_CODEC_FLAG_GRAY)) {
             dct_y_offset = interlaced_mb ? frame->linesize[1] : (dct_linesize_chroma << 3);
-            ctx->idsp.idct_put(dest_u,                               dct_linesize_chroma, row->blocks[2]);
-            ctx->idsp.idct_put(dest_u + dct_x_offset,                dct_linesize_chroma, row->blocks[3]);
-            ctx->idsp.idct_put(dest_u + dct_y_offset,                dct_linesize_chroma, row->blocks[8]);
-            ctx->idsp.idct_put(dest_u + dct_y_offset + dct_x_offset, dct_linesize_chroma, row->blocks[9]);
-            ctx->idsp.idct_put(dest_v,                               dct_linesize_chroma, row->blocks[4]);
-            ctx->idsp.idct_put(dest_v + dct_x_offset,                dct_linesize_chroma, row->blocks[5]);
-            ctx->idsp.idct_put(dest_v + dct_y_offset,                dct_linesize_chroma, row->blocks[10]);
-            ctx->idsp.idct_put(dest_v + dct_y_offset + dct_x_offset, dct_linesize_chroma, row->blocks[11]);
+            ctx->idsp.idct_put(dest_u,                               dct_linesize_chroma, ctx->blocks[2]);
+            ctx->idsp.idct_put(dest_u + dct_x_offset,                dct_linesize_chroma, ctx->blocks[3]);
+            ctx->idsp.idct_put(dest_u + dct_y_offset,                dct_linesize_chroma, ctx->blocks[8]);
+            ctx->idsp.idct_put(dest_u + dct_y_offset + dct_x_offset, dct_linesize_chroma, ctx->blocks[9]);
+            ctx->idsp.idct_put(dest_v,                               dct_linesize_chroma, ctx->blocks[4]);
+            ctx->idsp.idct_put(dest_v + dct_x_offset,                dct_linesize_chroma, ctx->blocks[5]);
+            ctx->idsp.idct_put(dest_v + dct_y_offset,                dct_linesize_chroma, ctx->blocks[10]);
+            ctx->idsp.idct_put(dest_v + dct_y_offset + dct_x_offset, dct_linesize_chroma, ctx->blocks[11]);
         }
     }
 

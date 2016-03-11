@@ -879,6 +879,9 @@ int sws_setColorspaceDetails(struct SwsContext *c, const int inv_table[4],
     if (!need_reinit)
         return 0;
 
+    if (!need_reinit)
+        return 0;
+
     if ((isYUV(c->dstFormat) || isGray(c->dstFormat)) && (isYUV(c->srcFormat) || isGray(c->srcFormat))) {
         if (!c->cascaded_context[0] &&
             memcmp(c->dstColorspaceTable, c->srcColorspaceTable, sizeof(int) * 4) &&

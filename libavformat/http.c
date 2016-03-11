@@ -158,6 +158,7 @@ static const AVOption options[] = {
     { NULL }
 };
 
+static int http_averror(int status_code, int default_averror, int icy_response);
 static int http_connect(URLContext *h, const char *path, const char *local_path,
                         const char *hoststr, const char *auth,
                         const char *proxyauth, int *new_location);
@@ -287,7 +288,7 @@ fail:
         ffurl_closep(&s->hd);
     if (location_changed < 0)
         return location_changed;
-    return ff_http_averror(s->http_code, AVERROR(EIO));
+    return http_averror(s->http_code, AVERROR(EIO), (NULL != s->icy_metadata_headers));
 }
 
 int ff_http_do_new_request(URLContext *h, const char *uri)
@@ -310,9 +311,32 @@ int ff_http_do_new_request(URLContext *h, const char *uri)
 
 int ff_http_averror(int status_code, int default_averror)
 {
+    return http_averror(status_code, default_averror, 0);
+}
+
+static int http_averror(int status_code, int default_averror, int icy_response)
+{
     switch (status_code) {
-        case 400: return AVERROR_HTTP_BAD_REQUEST;
-        case 401: return AVERROR_HTTP_UNAUTHORIZED;
+        case 400:
+            // when we get an icy response the actual
+            // http error code means slightly something
+            // different than what HTTP 400 actually means
+            // so we take care of that here...
+            if (icy_response) {
+                return AVERROR_ICY_SERVER_FULL;
+            } else {
+                return AVERROR_HTTP_BAD_REQUEST;
+            }
+        case 401:
+            // when we get an icy response the actual
+            // http error code means slightly something
+            // different than what HTTP 401 actually means
+            // so we take care of that here...
+            if (icy_response) {
+                return AVERROR_ICY_SERVER_OFFLINE;
+            } else {
+                return AVERROR_HTTP_UNAUTHORIZED;
+            }
         case 403: return AVERROR_HTTP_FORBIDDEN;
         case 404: return AVERROR_HTTP_NOT_FOUND;
         default: break;
@@ -578,7 +602,8 @@ static int check_http_code(URLContext *h, int http_code, const char *end)
         (http_code != 407 || s->proxy_auth_state.auth_type != HTTP_AUTH_NONE)) {
         end += strspn(end, SPACE_CHARS);
         av_log(h, AV_LOG_WARNING, "HTTP error %d %s\n", http_code, end);
-        return ff_http_averror(http_code, AVERROR(EIO));
+        
+        return http_averror(http_code, AVERROR(EIO), (NULL != s->icy_metadata_headers));
     }
     return 0;
 }
@@ -1625,7 +1650,7 @@ redo:
 
     if (s->http_code < 400)
         return 0;
-    ret = ff_http_averror(s->http_code, AVERROR(EIO));
+    ret = http_averror(s->http_code, AVERROR(EIO), (NULL != s->icy_metadata_headers));
 
 fail:
     http_proxy_close(h);

@@ -244,7 +244,7 @@ static void free_playlist_list(HLSContext *c)
         av_dict_free(&pls->id3_initial);
         ff_id3v2_free_extra_meta(&pls->id3_deferred_extra);
         av_freep(&pls->init_sec_buf);
-        av_packet_unref(&pls->pkt);
+        av_free_packet(&pls->pkt);
         av_freep(&pls->pb.buffer);
         if (pls->input)
             ffurl_close(pls->input);

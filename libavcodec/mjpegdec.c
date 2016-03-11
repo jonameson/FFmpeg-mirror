@@ -282,7 +282,7 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     }
 
     if (s->avctx->bits_per_raw_sample != bits) {
-        av_log(s->avctx, AV_LOG_INFO, "Changing bps to %d\n", bits);
+        av_log(s->avctx, AV_LOG_INFO, "Changeing bps to %d\n", bits);
         s->avctx->bits_per_raw_sample = bits;
         init_idct(s->avctx);
     }
@@ -1266,8 +1266,8 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
 
     av_pix_fmt_get_chroma_sub_sample(s->avctx->pix_fmt, &chroma_h_shift,
                                      &chroma_v_shift);
-    chroma_width  = AV_CEIL_RSHIFT(s->width,  chroma_h_shift);
-    chroma_height = AV_CEIL_RSHIFT(s->height, chroma_v_shift);
+    chroma_width  = FF_CEIL_RSHIFT(s->width,  chroma_h_shift);
+    chroma_height = FF_CEIL_RSHIFT(s->height, chroma_v_shift);
 
     for (i = 0; i < nb_components; i++) {
         int c   = s->comp_index[i];

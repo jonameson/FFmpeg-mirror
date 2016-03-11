@@ -126,6 +126,22 @@ static uint64_t get_channel_layout_single(const char *name, int name_len)
     errno = 0;
     i = strtol(name, &end, 10);
 
+#if FF_API_GET_CHANNEL_LAYOUT_COMPAT
+    if (compat) {
+        if (end - name == name_len ||
+            (end + 1 - name == name_len && *end  == 'c')) {
+            layout = av_get_default_channel_layout(i);
+            if (end - name == name_len) {
+                av_log(NULL, AV_LOG_WARNING,
+                       "Single channel layout '%.*s' is interpreted as a number of channels, "
+                       "switch to the syntax '%.*sc' otherwise it will be interpreted as a "
+                       "channel layout number in a later version\n",
+                       name_len, name, name_len, name);
+            }
+            return layout;
+        }
+    } else {
+#endif
     if (!errno && (end + 1 - name == name_len && *end  == 'c'))
         return av_get_default_channel_layout(i);
 

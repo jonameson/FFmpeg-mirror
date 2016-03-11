@@ -148,7 +148,7 @@ fate-aac-aref-encode: REF = ./tests/data/asynth-44100-2.wav
 fate-aac-aref-encode: CMP_SHIFT = -4096
 fate-aac-aref-encode: CMP_TARGET = 669
 fate-aac-aref-encode: SIZE_TOLERANCE = 2464
-fate-aac-aref-encode: FUZZ = 89
+fate-aac-aref-encode: FUZZ = 6
 
 FATE_AAC_ENCODE += fate-aac-ln-encode
 fate-aac-ln-encode: CMD = enc_dec_pcm adts wav s16le $(TARGET_SAMPLES)/audio-reference/luckynight_2ch_44kHz_s16.wav -c:a aac -aac_is 0 -aac_pns 0 -aac_ms 0 -aac_tns 0 -b:a 512k

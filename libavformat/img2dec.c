@@ -524,8 +524,7 @@ int ff_img_read_packet(AVFormatContext *s1, AVPacket *pkt)
 fail:
     if (!s->is_pipe) {
         for (i = 0; i < 3; i++) {
-            if (f[i] != s1->pb)
-                avio_closep(&f[i]);
+            avio_closep(&f[i]);
         }
     }
     return res;

@@ -18,6 +18,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *
+ * signal_standard, color_siting, store_user_comments and klv_fill_key version
+ * fixes sponsored by NOA GmbH
  */
 
 /*
@@ -2678,7 +2681,7 @@ static int mxf_interleave(AVFormatContext *s, AVPacket *out, AVPacket *pkt, int 
 static const AVOption mxf_options[] = {
     MXF_COMMON_OPTIONS
     { "store_user_comments", "",
-      offsetof(MXFContext, store_user_comments), AV_OPT_TYPE_BOOL, {.i64 = 1}, 0, 1, AV_OPT_FLAG_ENCODING_PARAM},
+      offsetof(MXFContext, store_user_comments), AV_OPT_TYPE_INT, {.i64 = 1}, 0, 1, AV_OPT_FLAG_ENCODING_PARAM},
     { NULL },
 };
 
@@ -2694,7 +2697,7 @@ static const AVOption d10_options[] = {
       offsetof(MXFContext, channel_count), AV_OPT_TYPE_INT, {.i64 = -1}, -1, 8, AV_OPT_FLAG_ENCODING_PARAM},
     MXF_COMMON_OPTIONS
     { "store_user_comments", "",
-      offsetof(MXFContext, store_user_comments), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, AV_OPT_FLAG_ENCODING_PARAM},
+      offsetof(MXFContext, store_user_comments), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, AV_OPT_FLAG_ENCODING_PARAM},
     { NULL },
 };
 

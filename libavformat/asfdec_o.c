@@ -1151,10 +1151,10 @@ static int asf_read_replicated_data(AVFormatContext *s, ASFPacket *asf_pkt)
     int ret, data_size;
 
     if (!asf_pkt->data_size) {
-        data_size = avio_rl32(pb); // read media object size
-        if (data_size <= 0)
+        asf_pkt->data_size = asf_pkt->size_left = avio_rl32(pb); // read media object size
+        if (asf_pkt->data_size <= 0)
             return AVERROR_INVALIDDATA;
-        if ((ret = av_new_packet(&asf_pkt->avpkt, data_size)) < 0)
+        if ((ret = av_new_packet(&asf_pkt->avpkt, asf_pkt->data_size)) < 0)
             return ret;
         asf_pkt->data_size = asf_pkt->size_left = data_size;
     } else

@@ -49,7 +49,7 @@ static const uint8_t dnxhd_1235_chroma_weight[] = {
     90, 90, 85, 79, 73, 73, 73, 73,
 };
 
-/* Used in CID 1237, 1253, 1259, 1273, 1274 */
+/* Used in CID 1237, 1253, 1259 */
 static const uint8_t dnxhd_1237_luma_weight[] = {
      0,  32,  33,  34, 34, 36, 37, 36,
     36,  37,  38,  38, 38, 39, 41, 44,
@@ -61,7 +61,7 @@ static const uint8_t dnxhd_1237_luma_weight[] = {
     97, 100, 104, 102, 98, 98, 99, 99,
 };
 
-/* Used in CID 1237, 1253, 1259, 1273, 1274 */
+/* Used in CID 1237, 1253, 1259 */
 static const uint8_t dnxhd_1237_chroma_weight[] = {
      0,  32,  36,  39, 39, 38, 39,  41,
     45,  51,  57,  58, 53, 48, 47,  51,
@@ -231,6 +231,17 @@ static const uint8_t dnxhd_1252_chroma_weight[] = {
      72,  73,  82,  85,  89,  88,  84,  80,
      90, 100,  90,  90,  88,  87,  90,  95,
     114, 128, 125, 129, 134, 125, 116, 116,
+};
+
+static const uint8_t dnxhd_1256_chroma_weight[] = {
+     0, 32, 32, 32, 32, 32, 32, 32,
+    32, 32, 32, 32, 32, 32, 32, 32,
+    32, 32, 32, 32, 32, 32, 37, 32,
+    32, 32, 32, 32, 33, 32, 32, 32,
+    32, 32, 33, 34, 37, 36, 32, 32,
+    32, 33, 34, 37, 36, 34, 35, 36,
+    39, 44, 40, 40, 39, 39, 44, 43,
+    43, 51, 56, 50, 49, 60, 61, 70,
 };
 
 static const uint8_t dnxhd_1260_luma_weight[] = {
@@ -1019,15 +1030,13 @@ const CIDEntry ff_dnxhd_cid_table[] = {
       dnxhd_1235_run_codes, dnxhd_1235_run_bits, dnxhd_1235_run,
       { 350, 390, 440, 730, 880 },
       { { 24000, 1001 }, { 25, 1 }, { 30000, 1001 }, { 50, 1 }, { 60000, 1001 } } },
-    { 1258, 960, 720, 212992, 212992,
-      0, 4, 8, 5,
+    { 1258, 960, 720, 0, 212992, 212992, 4, 8, 5,
       dnxhd_1252_luma_weight, dnxhd_1252_chroma_weight,
       dnxhd_1237_dc_codes, dnxhd_1237_dc_bits,
       dnxhd_1252_ac_codes, dnxhd_1252_ac_bits, dnxhd_1252_ac_info,
       dnxhd_1250_run_codes, dnxhd_1250_run_bits, dnxhd_1250_run,
       { 42, 60, 75, 115 } },
-    { 1259, 1440, 1080, 417792, 417792,
-      0, 4, 8, 3,
+    { 1259, 1440, 1080, 0, 417792, 417792, 4, 8, 3,
       dnxhd_1237_luma_weight, dnxhd_1237_chroma_weight,
       dnxhd_1237_dc_codes, dnxhd_1237_dc_bits,
       dnxhd_1237_ac_codes, dnxhd_1237_ac_bits, dnxhd_1237_ac_info,
