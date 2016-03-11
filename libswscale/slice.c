@@ -39,7 +39,7 @@ static void free_lines(SwsSlice *s)
 }
 
 /*
- slice lines contains extra bytes for vetorial code thus @size
+ slice lines contains extra bytes for vectorial code thus @size
  is the allocated memory size and @width is the number of pixels
 */
 static int alloc_lines(SwsSlice *s, int size, int width)
@@ -149,9 +149,9 @@ int ff_init_slice_from_src(SwsSlice * s, uint8_t *src[4], int stride[4], int src
     int i = 0;
 
     const int start[4] = {lumY,
-                    chrY,
-                    chrY,
-                    lumY};
+                          chrY,
+                          chrY,
+                          lumY};
 
     const int end[4] = {lumY +lumH,
                         chrY + chrH,

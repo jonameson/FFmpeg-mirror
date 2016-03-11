@@ -29,6 +29,9 @@
 
 struct MpegEncContext;
 
+#if ARCH_IA64 // Limit static arrays to avoid gcc failing "short data segment overflowed"
+#define MAX_MV 1024
+#else
 #define MAX_MV 4096
 #define MAX_DMV (2*MAX_MV)
 

@@ -24,6 +24,11 @@
  */
 
 /*
+ * signal_standard, color_siting, store_user_comments and klv_fill_key version
+ * fixes sponsored by NOA GmbH
+ */
+
+/*
  * References
  * SMPTE 336M KLV Data Encoding Protocol Using Key-Length-Value
  * SMPTE 377M MXF File Format Specifications
@@ -1918,7 +1923,7 @@ static const UID mxf_mpeg2_codec_uls[] = {
 
 static const UID *mxf_get_mpeg2_codec_ul(AVCodecContext *avctx)
 {
-    int long_gop = avctx->gop_size > 1 || avctx->has_b_frames;
+    int long_gop = 1;
 
     if (avctx->profile == 4) { // Main
         if (avctx->level == 8) // Main
@@ -2075,7 +2080,7 @@ static int mxf_write_header(AVFormatContext *s)
             sc->color_siting = 0xFF;
 
             if (pix_desc) {
-                sc->component_depth     = pix_desc->comp[0].depth_minus1 + 1;
+                sc->component_depth     = pix_desc->comp[0].depth;
                 sc->h_chroma_sub_sample = 1 << pix_desc->log2_chroma_w;
             }
             switch (ff_choose_chroma_location(s, st)) {
@@ -2608,7 +2613,7 @@ static int mxf_interleave_get_packet(AVFormatContext *s, AVPacket *out, AVPacket
 
                 if(s->streams[pktl->pkt.stream_index]->last_in_packet_buffer == pktl)
                     s->streams[pktl->pkt.stream_index]->last_in_packet_buffer= NULL;
-                av_free_packet(&pktl->pkt);
+                av_packet_unref(&pktl->pkt);
                 av_freep(&pktl);
                 pktl = next;
             }

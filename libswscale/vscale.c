@@ -70,7 +70,7 @@ static int chr_planar_vscale(SwsContext *c, SwsFilterDescriptor *desc, int slice
         return 0;
     else {
         VScalerContext *inst = desc->instance;
-        int dstW = FF_CEIL_RSHIFT(desc->dst->width, desc->dst->h_chr_sub_sample);
+        int dstW = AV_CEIL_RSHIFT(desc->dst->width, desc->dst->h_chr_sub_sample);
         int chrSliceY = sliceY >> desc->dst->v_chr_sub_sample;
 
         int first = FFMAX(1-inst->filter_size, inst->filter_pos[chrSliceY]);
@@ -109,7 +109,7 @@ static int packed_vscale(SwsContext *c, SwsFilterDescriptor *desc, int sliceY, i
     uint16_t *lum_filter = inst[0].filter[0];
     uint16_t *chr_filter = inst[1].filter[0];
 
-    int firstLum = FFMAX(1-lum_fsize, inst[0].filter_pos[chrSliceY]);
+    int firstLum = FFMAX(1-lum_fsize, inst[0].filter_pos[   sliceY]);
     int firstChr = FFMAX(1-chr_fsize, inst[1].filter_pos[chrSliceY]);
 
     int sp0 = firstLum - desc->src->plane[0].sliceY;
@@ -140,7 +140,7 @@ static int packed_vscale(SwsContext *c, SwsFilterDescriptor *desc, int sliceY, i
                chr_filter[2 * chrSliceY + 1] <= 4096U
     ) { // bilinear upscale RGB
         int lumAlpha = lum_filter[2 * sliceY + 1];
-        int chrAlpha = chr_filter[2 * sliceY + 1];
+        int chrAlpha = chr_filter[2 * chrSliceY + 1];
         c->lumMmxFilter[2] =
         c->lumMmxFilter[3] = lum_filter[2 * sliceY]    * 0x10001;
         c->chrMmxFilter[2] =
@@ -173,7 +173,7 @@ static int any_vscale(SwsContext *c, SwsFilterDescriptor *desc, int sliceY, int 
     uint16_t *lum_filter = inst[0].filter[0];
     uint16_t *chr_filter = inst[1].filter[0];
 
-    int firstLum = FFMAX(1-lum_fsize, inst[0].filter_pos[chrSliceY]);
+    int firstLum = FFMAX(1-lum_fsize, inst[0].filter_pos[   sliceY]);
     int firstChr = FFMAX(1-chr_fsize, inst[1].filter_pos[chrSliceY]);
 
     int sp0 = firstLum - desc->src->plane[0].sliceY;
@@ -258,7 +258,7 @@ void ff_init_vscale_pfn(SwsContext *c,
 {
     VScalerContext *lumCtx = NULL;
     VScalerContext *chrCtx = NULL;
-    int idx = c->numDesc - (c->is_internal_gamma ? 2 : 1);
+    int idx = c->numDesc - (c->is_internal_gamma ? 2 : 1); //FIXME avoid hardcoding indexes
 
     if (isPlanarYUV(c->dstFormat) || (isGray(c->dstFormat) && !isALPHA(c->dstFormat))) {
         if (!isGray(c->dstFormat)) {

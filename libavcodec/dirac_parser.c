@@ -111,8 +111,12 @@ static int unpack_parse_unit(DiracParseUnit *pu, DiracParseContext *pc,
     pu->next_pu_offset = AV_RB32(start + 5);
     pu->prev_pu_offset = AV_RB32(start + 9);
 
-    if (pu->pu_type == 0x10 && pu->next_pu_offset == 0)
-        pu->next_pu_offset = 13;
+    /* Check for valid parse code */
+    for (i = 0; i < 17; i++)
+        if (valid_pu_types[i] == pu->pu_type)
+            break;
+    if (i == 17)
+        return 0;
 
     if (pu->next_pu_offset && pu->next_pu_offset < 13) {
         av_log(NULL, AV_LOG_ERROR, "next_pu_offset %d is invalid\n", pu->next_pu_offset);

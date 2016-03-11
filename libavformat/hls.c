@@ -196,7 +196,9 @@ typedef struct HLSContext {
     char *user_agent;                    ///< holds HTTP user agent set as an AVOption to the HTTP protocol context
     char *cookies;                       ///< holds HTTP cookie values set in either the initial response or as an AVOption to the HTTP protocol context
     char *headers;                       ///< holds HTTP headers set as an AVOption to the HTTP protocol context
+    char *http_proxy;                    ///< holds the address of the HTTP proxy server
     AVDictionary *avio_opts;
+    int strict_std_compliance;
 } HLSContext;
 
 static int read_chomp_line(AVIOContext *s, char *buf, int maxlen)
@@ -255,6 +257,8 @@ static void free_playlist_list(HLSContext *c)
     av_freep(&c->playlists);
     av_freep(&c->cookies);
     av_freep(&c->user_agent);
+    av_freep(&c->headers);
+    av_freep(&c->http_proxy);
     c->n_playlists = 0;
 }
 
@@ -473,8 +477,9 @@ static struct rendition *new_rendition(HLSContext *c, struct rendition_info *inf
         return NULL;
 
     /* TODO: handle subtitles (each segment has to parsed separately) */
-    if (type == AVMEDIA_TYPE_SUBTITLE)
-        return NULL;
+    if (c->strict_std_compliance > FF_COMPLIANCE_EXPERIMENTAL)
+        if (type == AVMEDIA_TYPE_SUBTITLE)
+            return NULL;
 
     rend = av_mallocz(sizeof(struct rendition));
     if (!rend)
@@ -576,19 +581,6 @@ static int ensure_playlist(HLSContext *c, struct playlist **pls, const char *url
     return 0;
 }
 
-static int open_in(HLSContext *c, AVIOContext **in, const char *url)
-{
-    AVDictionary *tmp = NULL;
-    int ret;
-
-    av_dict_copy(&tmp, c->avio_opts, 0);
-
-    ret = avio_open2(in, url, AVIO_FLAG_READ, c->interrupt_callback, &tmp);
-
-    av_dict_free(&tmp);
-    return ret;
-}
-
 static int url_connect(struct playlist *pls, AVDictionary *opts, AVDictionary *opts2)
 {
     AVDictionary *tmp = NULL;
@@ -677,6 +669,7 @@ static int parse_playlist(HLSContext *c, const char *url,
         av_dict_set(&opts, "user-agent", c->user_agent, 0);
         av_dict_set(&opts, "cookies", c->cookies, 0);
         av_dict_set(&opts, "headers", c->headers, 0);
+        av_dict_set(&opts, "http_proxy", c->http_proxy, 0);
 
         ret = avio_open2(&in, url, AVIO_FLAG_READ,
                          c->interrupt_callback, &opts);
@@ -1090,6 +1083,7 @@ static int open_input(HLSContext *c, struct playlist *pls, struct segment *seg)
     av_dict_set(&opts, "user-agent", c->user_agent, 0);
     av_dict_set(&opts, "cookies", c->cookies, 0);
     av_dict_set(&opts, "headers", c->headers, 0);
+    av_dict_set(&opts, "http_proxy", c->http_proxy, 0);
     av_dict_set(&opts, "seekable", "0", 0);
 
     if (seg->size >= 0) {
@@ -1490,12 +1484,14 @@ static int select_cur_seq_no(HLSContext *c, struct playlist *pls)
 static int save_avio_options(AVFormatContext *s)
 {
     HLSContext *c = s->priv_data;
-    const char *opts[] = { "headers", "user_agent", "user-agent", "cookies", NULL }, **opt = opts;
+    const char *opts[] = {
+        "headers", "http_proxy", "user_agent", "user-agent", "cookies", NULL };
+    const char **opt = opts;
     uint8_t *buf;
     int ret = 0;
 
     while (*opt) {
-        if (av_opt_get(s->pb, *opt, AV_OPT_SEARCH_CHILDREN, &buf) >= 0) {
+        if (av_opt_get(s->pb, *opt, AV_OPT_SEARCH_CHILDREN | AV_OPT_ALLOW_NULL, &buf) >= 0) {
             ret = av_dict_set(&c->avio_opts, *opt, buf,
                               AV_DICT_DONT_STRDUP_VAL);
             if (ret < 0)
@@ -1514,6 +1510,7 @@ static int hls_read_header(AVFormatContext *s)
     int ret = 0, i, j, stream_offset = 0;
 
     c->interrupt_callback = &s->interrupt_callback;
+    c->strict_std_compliance = s->strict_std_compliance;
 
     c->first_packet = 1;
     c->first_timestamp = AV_NOPTS_VALUE;
@@ -1529,6 +1526,9 @@ static int hls_read_header(AVFormatContext *s)
 
         // get the previous headers & set back to null if string size is zero
         update_options(&c->headers, "headers", u->priv_data);
+
+        // get the previous http proxt & set back to null if string size is zero
+        update_options(&c->http_proxy, "http_proxy", u->priv_data);
     }
 
     if ((ret = parse_playlist(c, s->filename, NULL, s->pb)) < 0)
@@ -1690,7 +1690,7 @@ static int hls_read_header(AVFormatContext *s)
             for (k = 0; k < pls->ctx->nb_streams; k++) {
                 struct AVStream *st = s->streams[pls->stream_offset + k];
 
-                ff_program_add_stream_index(s, i, pls->stream_offset + k);
+                av_program_add_stream_index(s, i, pls->stream_offset + k);
 
                 /* Set variant_bitrate for streams unique to this variant */
                 if (!is_shared && v->bandwidth)
@@ -1846,7 +1846,7 @@ static int hls_read_packet(AVFormatContext *s, AVPacket *pkt)
                         break;
                     }
                 }
-                av_free_packet(&pls->pkt);
+                av_packet_unref(&pls->pkt);
                 reset_packet(&pls->pkt);
             }
         }
@@ -1948,7 +1948,7 @@ static int hls_read_seek(AVFormatContext *s, int stream_index,
             ffurl_close(pls->input);
             pls->input = NULL;
         }
-        av_free_packet(&pls->pkt);
+        av_packet_unref(&pls->pkt);
         reset_packet(&pls->pkt);
         pls->pb.eof_reached = 0;
         /* Clear any buffered data */
@@ -1983,6 +1983,10 @@ static int hls_probe(AVProbeData *p)
      * somewhere for a proper match. */
     if (strncmp(p->buf, "#EXTM3U", 7))
         return 0;
+
+    if (p->filename && *p->filename && !av_match_ext(p->filename, "m3u8,m3u"))
+        return 0;
+
     if (strstr(p->buf, "#EXT-X-STREAM-INF:")     ||
         strstr(p->buf, "#EXT-X-TARGETDURATION:") ||
         strstr(p->buf, "#EXT-X-MEDIA-SEQUENCE:"))

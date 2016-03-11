@@ -265,6 +265,9 @@ hvar_fn
     mov     [dstq+%2-3], valw
     sar            vald, 16
     mov     [dstq+%2-1], valb
+%ifnidn %1, body
+    ror            vald, 16
+%endif
 %endif
 %endif ; (%2-%%off) >= 1
 %endmacro ; WRITE_NUM_BYTES

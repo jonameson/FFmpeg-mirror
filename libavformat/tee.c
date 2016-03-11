@@ -47,6 +47,7 @@ static const char *const slave_opt_open  = "[";
 static const char *const slave_opt_close = "]";
 static const char *const slave_opt_delim = ":]"; /* must have the close too */
 static const char *const slave_bsfs_spec_sep = "/";
+static const char *const slave_select_sep = ",";
 
 static const AVClass tee_muxer_class = {
     .class_name = "Tee muxer",
@@ -142,6 +143,8 @@ static int open_slave(AVFormatContext *avf, char *slave, TeeSlave *tee_slave)
     AVFormatContext *avf2 = NULL;
     AVStream *st, *st2;
     int stream_count;
+    int fullret;
+    char *subselect = NULL, *next_subselect = NULL, *first_subselect = NULL, *tmp_select = NULL;
 
     if ((ret = parse_slave_options(avf, slave, &options, &filename)) < 0)
         return ret;
@@ -172,15 +175,32 @@ static int open_slave(AVFormatContext *avf, char *slave, TeeSlave *tee_slave)
     for (i = 0; i < avf->nb_streams; i++) {
         st = avf->streams[i];
         if (select) {
-            ret = avformat_match_stream_specifier(avf, avf->streams[i], select);
-            if (ret < 0) {
-                av_log(avf, AV_LOG_ERROR,
-                       "Invalid stream specifier '%s' for output '%s'\n",
-                       select, slave);
+            tmp_select = av_strdup(select);  // av_strtok is destructive so we regenerate it in each loop
+            if (!tmp_select) {
+                ret = AVERROR(ENOMEM);
                 goto end;
             }
+            fullret = 0;
+            first_subselect = tmp_select;
+            next_subselect = NULL;
+            while (subselect = av_strtok(first_subselect, slave_select_sep, &next_subselect)) {
+                first_subselect = NULL;
 
-            if (ret == 0) { /* no match */
+                ret = avformat_match_stream_specifier(avf, avf->streams[i], subselect);
+                if (ret < 0) {
+                    av_log(avf, AV_LOG_ERROR,
+                           "Invalid stream specifier '%s' for output '%s'\n",
+                           subselect, slave);
+                    goto end;
+                }
+                if (ret != 0) {
+                    fullret = 1; // match
+                    break;
+                }
+            }
+            av_freep(&tmp_select);
+
+            if (fullret == 0) { /* no match */
                 tee_slave->stream_map[i] = -1;
                 continue;
             }
@@ -282,6 +302,7 @@ end:
     av_free(format);
     av_free(select);
     av_dict_free(&options);
+    av_freep(&tmp_select);
     return ret;
 }
 
@@ -483,8 +504,9 @@ static int tee_write_packet(AVFormatContext *avf, AVPacket *pkt)
         pkt2.duration = av_rescale_q(pkt->duration, tb, tb2);
         pkt2.stream_index = s2;
 
-        filter_packet(avf2, &pkt2, avf2, tee->slaves[i].bsfs[s2]);
-        if ((ret = av_interleaved_write_frame(avf2, &pkt2)) < 0)
+        if ((ret = av_apply_bitstream_filters(avf2->streams[s2]->codec, &pkt2,
+                                              tee->slaves[i].bsfs[s2])) < 0 ||
+            (ret = av_interleaved_write_frame(avf2, &pkt2)) < 0)
             if (!ret_all)
                 ret_all = ret;
     }

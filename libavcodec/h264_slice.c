@@ -171,9 +171,9 @@ static int alloc_scratch_buffers(H264SliceContext *sl, int linesize)
     // (= 21x21 for  h264)
     av_fast_malloc(&sl->edge_emu_buffer, &sl->edge_emu_buffer_allocated, alloc_size * 2 * 21);
 
-    av_fast_malloc(&sl->top_borders[0], &sl->top_borders_allocated[0],
+    av_fast_mallocz(&sl->top_borders[0], &sl->top_borders_allocated[0],
                    h->mb_width * 16 * 3 * sizeof(uint8_t) * 2);
-    av_fast_malloc(&sl->top_borders[1], &sl->top_borders_allocated[1],
+    av_fast_mallocz(&sl->top_borders[1], &sl->top_borders_allocated[1],
                    h->mb_width * 16 * 3 * sizeof(uint8_t) * 2);
 
     if (!sl->bipred_scratchpad || !sl->edge_emu_buffer ||
@@ -251,11 +251,11 @@ static int alloc_picture(H264Context *h, H264Picture *pic)
         av_pix_fmt_get_chroma_sub_sample(pic->f->format,
                                          &h_chroma_shift, &v_chroma_shift);
 
-        for(i=0; i<FF_CEIL_RSHIFT(pic->f->height, v_chroma_shift); i++) {
+        for(i=0; i<AV_CEIL_RSHIFT(pic->f->height, v_chroma_shift); i++) {
             memset(pic->f->data[1] + pic->f->linesize[1]*i,
-                   0x80, FF_CEIL_RSHIFT(pic->f->width, h_chroma_shift));
+                   0x80, AV_CEIL_RSHIFT(pic->f->width, h_chroma_shift));
             memset(pic->f->data[2] + pic->f->linesize[2]*i,
-                   0x80, FF_CEIL_RSHIFT(pic->f->width, h_chroma_shift));
+                   0x80, AV_CEIL_RSHIFT(pic->f->width, h_chroma_shift));
         }
     }
 
@@ -540,10 +540,7 @@ int ff_h264_update_thread_context(AVCodecContext *dst,
     h->dequant_coeff_pps = h1->dequant_coeff_pps;
 
     // POC timing
-    copy_fields(h, h1, poc_lsb, default_ref_list);
-
-    // reference lists
-    copy_fields(h, h1, short_ref, current_slice);
+    copy_fields(h, h1, poc_lsb, current_slice);
 
     copy_picture_range(h->short_ref, h1->short_ref, 32, h, h1);
     copy_picture_range(h->long_ref, h1->long_ref, 32, h, h1);
@@ -598,6 +595,7 @@ static int h264_frame_start(H264Context *h)
     pic->reference              = h->droppable ? 0 : h->picture_structure;
     pic->f->coded_picture_number = h->coded_picture_number++;
     pic->field_picture          = h->picture_structure != PICT_FRAME;
+    pic->frame_num               = h->frame_num;
 
     /*
      * Zero key_frame here; IDR markings per slice in frame or fields are ORed
@@ -617,7 +615,7 @@ static int h264_frame_start(H264Context *h)
        && !(h->avctx->codec->capabilities & AV_CODEC_CAP_HWACCEL_VDPAU)
 #endif
        )
-        avpriv_color_frame(pic->f, c);
+        ff_color_frame(pic->f, c);
 
     h->cur_pic_ptr = pic;
     ff_h264_unref_picture(h, &h->cur_pic);
@@ -1228,7 +1226,6 @@ int ff_h264_decode_slice_header(H264Context *h, H264SliceContext *sl)
         sl->slice_type_fixed = 0;
 
     slice_type = golomb_to_pict_type[slice_type];
-
     sl->slice_type     = slice_type;
     sl->slice_type_nos = slice_type & 3;
 
@@ -1667,11 +1664,7 @@ int ff_h264_decode_slice_header(H264Context *h, H264SliceContext *sl)
             memset(h->slice_table, -1,
                 (h->mb_height * h->mb_stride - 1) * sizeof(*h->slice_table));
         }
-        h->last_slice_type = -1;
     }
-
-    if (!h->setup_finished)
-        h->cur_pic_ptr->frame_num = h->frame_num; // FIXME frame_num cleanup
 
     av_assert1(h->mb_num == h->mb_width * h->mb_height);
     if (first_mb_in_slice << FIELD_OR_MBAFF_PICTURE(h) >= h->mb_num ||
@@ -1695,7 +1688,7 @@ int ff_h264_decode_slice_header(H264Context *h, H264SliceContext *sl)
     }
 
     if (h->nal_unit_type == NAL_IDR_SLICE)
-        get_ue_golomb(&sl->gb); /* idr_pic_id */
+        get_ue_golomb_long(&sl->gb); /* idr_pic_id */
 
     if (h->sps.poc_type == 0) {
         int poc_lsb = get_bits(&sl->gb, h->sps.log2_max_poc_lsb);
@@ -1733,14 +1726,6 @@ int ff_h264_decode_slice_header(H264Context *h, H264SliceContext *sl)
     ret = ff_set_ref_count(h, sl);
     if (ret < 0)
         return ret;
-
-    if (slice_type != AV_PICTURE_TYPE_I &&
-        (h->current_slice == 0 ||
-         slice_type != h->last_slice_type ||
-         memcmp(h->last_ref_count, sl->ref_count, sizeof(sl->ref_count)))) {
-
-        ff_h264_fill_default_ref_list(h, sl);
-    }
 
     if (sl->slice_type_nos != AV_PICTURE_TYPE_I) {
        ret = ff_h264_decode_ref_pic_list_reordering(h, sl);
@@ -1885,8 +1870,6 @@ int ff_h264_decode_slice_header(H264Context *h, H264SliceContext *sl)
                           h->pps.chroma_qp_index_offset[1]) +
                    6 * (h->sps.bit_depth_luma - 8);
 
-    h->last_slice_type = slice_type;
-    memcpy(h->last_ref_count, sl->ref_count, sizeof(h->last_ref_count));
     sl->slice_num       = ++h->current_slice;
 
     if (sl->slice_num)
