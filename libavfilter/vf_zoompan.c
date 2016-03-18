@@ -247,8 +247,30 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     s->var_values[VAR_HSUB]  = 1 << s->desc->log2_chroma_w;
     s->var_values[VAR_VSUB]  = 1 << s->desc->log2_chroma_h;
 
-        ret = ff_filter_frame(outlink, out);
-        out = NULL;
+    if ((ret = av_expr_parse_and_eval(&nb_frames, s->duration_expr_str,
+                                      var_names, s->var_values,
+                                      NULL, NULL, NULL, NULL, NULL, 0, ctx)) < 0) {
+        av_frame_free(&in);
+        return ret;
+    }
+
+    s->var_values[VAR_DURATION] = s->nb_frames = nb_frames;
+    s->in = in;
+
+    return 0;
+}
+
+static int request_frame(AVFilterLink *outlink)
+{
+    AVFilterContext *ctx = outlink->src;
+    ZPContext *s = ctx->priv;
+    AVFrame *in = s->in;
+    double zoom=1, dx=0, dy=0;
+    int ret = -1;
+
+    if (in) {
+        ret = output_single_frame(ctx, in, s->var_values, s->current_frame,
+                                  &zoom, &dx, &dy);
         if (ret < 0)
             break;
 
@@ -260,7 +282,6 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
         s->nb_frames = 0;
         s->current_frame = 0;
         av_frame_free(&s->in);
-        ret = 0;
         s->finished = 1;
         ret = ff_request_frame(ctx->inputs[0]);
     }

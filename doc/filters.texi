@@ -4138,6 +4138,7 @@ Available values for component modes are:
 @item lighten
 @item linearlight
 @item multiply
+@item multiply128
 @item negation
 @item normal
 @item or
@@ -4240,6 +4241,12 @@ blend=all_expr='if(gte(Y-N*SH,0),A,B)'
 Apply uncover up-left effect:
 @example
 blend=all_expr='if(gte(T*SH*40+Y,H)*gte((T*40*SW+X)*W/H,W),A,B)'
+@end example
+
+@item
+Split diagonally video and shows top and bottom layer on each side:
+@example
+blend=all_expr=if(gt(X,Y*(W/H)),A,B)
 @end example
 
 @item
@@ -7477,12 +7484,9 @@ geq=lum=255*gauss((X/W-0.5)*3)*gauss((Y/H-0.5)*3)/gauss(0)/gauss(0),format=gray
 @end example
 
 @item
-Create a linear gradient to use as a mask for another filter, then
-compose with @ref{overlay}. In this example the video will gradually
-become more blurry from the top to the bottom of the y-axis as defined
-by the linear gradient:
+Diagonal split screen to compare filter effect:
 @example
-ffmpeg -i input.mp4 -filter_complex "geq=lum=255*(Y/H),format=gray[grad];[0:v]boxblur=4[blur];[blur][grad]alphamerge[alpha];[0:v][alpha]overlay" output.mp4
+ffmpeg -i input -filter_complex "[0:v]geq=lum=if(gt(X\,Y*(W/H))\,255),format=gray[alpha];[0:v][alpha]alphamerge,curves=preset=color_negative[filtered];[0:v][filtered]overlay" output
 @end example
 @end itemize
 
@@ -8444,6 +8448,105 @@ format=rgb24,mergeplanes=0x000102:yuv444p
 @end example
 @end itemize
 
+@section metadata, ametadata
+
+Manipulate frame metadata.
+
+This filter accepts the following options:
+
+@table @option
+@item mode
+Set mode of operation of the filter.
+
+Can be one of the following:
+
+@table @samp
+@item select
+If both @code{value} and @code{key} is set, select frames
+which have such metadata. If only @code{key} is set, select
+every frame that has such key in metadata.
+
+@item add
+Add new metadata @code{key} and @code{value}. If key is already available
+do nothing.
+
+@item modify
+Modify value of already present key.
+
+@item delete
+If @code{value} is set, delete only keys that have such value.
+Otherwise, delete key.
+
+@item print
+Print key and its value if metadata was found. If @code{key} is not set print all
+metadata values available in frame.
+@end table
+
+@item key
+Set key used with all modes. Must be set for all modes except @code{print}.
+
+@item value
+Set metadata value which will be used. This option is mandatory for
+@code{modify} and @code{add} mode.
+
+@item function
+Which function to use when comparing metadata value and @code{value}.
+
+Can be one of following:
+
+@table @samp
+@item same_str
+Values are interpreted as strings, returns true if metadata value is same as @code{value}.
+
+@item starts_with
+Values are interpreted as strings, returns true if metadata value starts with
+the @code{value} option string.
+
+@item less
+Values are interpreted as floats, returns true if metadata value is less than @code{value}.
+
+@item equal
+Values are interpreted as floats, returns true if @code{value} is equal with metadata value.
+
+@item greater
+Values are interpreted as floats, returns true if metadata value is greater than @code{value}.
+
+@item expr
+Values are interpreted as floats, returns true if expression from option @code{expr}
+evaluates to true.
+@end table
+
+@item expr
+Set expression which is used when @code{function} is set to @code{expr}.
+The expression is evaluated through the eval API and can contain the following
+constants:
+
+@table @option
+@item VALUE1
+Float representation of @code{value} from metadata key.
+
+@item VALUE2
+Float representation of @code{value} as supplied by user in @code{value} option.
+@end table
+
+@item file
+If specified in @code{print} mode, output is written to the named file. When
+filename equals "-" data is written to standard output.
+If @code{file} option is not set, output is written to the log with AV_LOG_INFO
+loglevel.
+@end table
+
+@subsection Examples
+
+@itemize
+@item
+Print all metadata values for frames with key @code{lavfi.singnalstats.YDIF} with values
+between 0 and 1.
+@example
+@end example
+signalstats,metadata=print:key=lavfi.signalstats.YDIF:value=0:function=expr:expr='between(VALUE1,0,1)'
+@end itemize
+
 @section mpdecimate
 
 Drop frames that do not differ greatly from the previous frame in
@@ -8489,6 +8592,115 @@ Negate input video.
 
 It accepts an integer in input; if non-zero it negates the
 alpha component (if available). The default value in input is 0.
+
+@section nnedi
+
+Deinterlace video using neural network edge directed interpolation.
+
+This filter accepts the following options:
+
+@table @option
+@item weights
+Mandatory option, without binary file filter can not work.
+Currently file can be found here:
+https://github.com/dubhater/vapoursynth-nnedi3/blob/master/src/nnedi3_weights.bin
+
+@item deint
+Set which frames to deinterlace, by default it is @code{all}.
+Can be @code{all} or @code{interlaced}.
+
+@item field
+Set mode of operation.
+
+Can be one of the following:
+
+@table @samp
+@item af
+Use frame flags, both fields.
+@item a
+Use frame flags, single field.
+@item t
+Use top field only.
+@item b
+Use bottom field only.
+@item ft
+Use both fields, top first.
+@item fb
+Use both fields, bottom first.
+@end table
+
+@item planes
+Set which planes to process, by default filter process all frames.
+
+@item nsize
+Set size of local neighborhood around each pixel, used by the predictor neural
+network.
+
+Can be one of the following:
+
+@table @samp
+@item s8x6
+@item s16x6
+@item s32x6
+@item s48x6
+@item s8x4
+@item s16x4
+@item s32x4
+@end table
+
+@item nns
+Set the number of neurons in predicctor neural network.
+Can be one of the following:
+
+@table @samp
+@item n16
+@item n32
+@item n64
+@item n128
+@item n256
+@end table
+
+@item qual
+Controls the number of different neural network predictions that are blended
+together to compute the final output value. Can be @code{fast}, default or
+@code{slow}.
+
+@item etype
+Set which set of weights to use in the predictor.
+Can be one of the following:
+
+@table @samp
+@item a
+weights trained to minimize absolute error
+@item s
+weights trained to minimize squared error
+@end table
+
+@item pscrn
+Controls whether or not the prescreener neural network is used to decide
+which pixels should be processed by the predictor neural network and which
+can be handled by simple cubic interpolation.
+The prescreener is trained to know whether cubic interpolation will be
+sufficient for a pixel or whether it should be predicted by the predictor nn.
+The computational complexity of the prescreener nn is much less than that of
+the predictor nn. Since most pixels can be handled by cubic interpolation,
+using the prescreener generally results in much faster processing.
+The prescreener is pretty accurate, so the difference between using it and not
+using it is almost always unnoticeable.
+
+Can be one of the following:
+
+@table @samp
+@item none
+@item original
+@item new
+@end table
+
+Default is @code{new}.
+
+@item fapprox
+Set various debugging flags.
+@end table
 
 @section noformat
 
@@ -11212,6 +11424,45 @@ stereo3d=abl:sbsr
 @end example
 @end itemize
 
+@section streamselect, astreamselect
+Select video or audio streams.
+
+The filter accepts the following options:
+
+@table @option
+@item inputs
+Set number of inputs. Default is 2.
+
+@item map
+Set input indexes to remap to outputs.
+@end table
+
+@subsection Commands
+
+The @code{streamselect} and @code{astreamselect} filter supports the following
+commands:
+
+@table @option
+@item map
+Set input indexes to remap to outputs.
+@end table
+
+@subsection Examples
+
+@itemize
+@item
+Select first 5 seconds 1st stream and rest of time 2nd stream:
+@example
+sendcmd='5.0 streamselect map 1',streamselect=inputs=2:map=0
+@end example
+
+@item
+Same as above, but for audio:
+@example
+asendcmd='5.0 astreamselect map 1',astreamselect=inputs=2:map=0
+@end example
+@end itemize
+
 @anchor{spp}
 @section spp
 
@@ -11324,6 +11575,60 @@ Scale the input by 2x and smooth using the Super2xSaI (Scale and
 Interpolate) pixel art scaling algorithm.
 
 Useful for enlarging pixel art images without reducing sharpness.
+
+@section swaprect
+
+Swap two rectangular objects in video.
+
+This filter accepts the following options:
+
+@table @option
+@item w
+Set object width.
+
+@item h
+Set object height.
+
+@item x1
+Set 1st rect x coordinate.
+
+@item y1
+Set 1st rect y coordinate.
+
+@item x2
+Set 2nd rect x coordinate.
+
+@item y2
+Set 2nd rect y coordinate.
+
+All expressions are evaluated once for each frame.
+@end table
+
+The all options are expressions containing the following constants:
+
+@table @option
+@item w
+@item h
+The input width and height.
+
+@item a
+same as @var{w} / @var{h}
+
+@item sar
+input sample aspect ratio
+
+@item dar
+input display aspect ratio, it is the same as (@var{w} / @var{h}) * @var{sar}
+
+@item n
+The number of the input frame, starting from 0.
+
+@item t
+The timestamp expressed in seconds. It's NAN if the input timestamp is unknown.
+
+@item pos
+the position in the file of the input frame, NAN if unknown
+@end table
 
 @section swapuv
 Swap U & V plane.
@@ -15383,7 +15688,7 @@ then resynthesize videos back to audio with spectrumsynth:
 @example
 ffmpeg -i input.flac -lavfi showspectrum=mode=separate:scale=log:overlap=0.875:color=channel:slide=fullframe:data=magnitude -an -c:v rawvideo magnitude.nut
 ffmpeg -i input.flac -lavfi showspectrum=mode=separate:scale=lin:overlap=0.875:color=channel:slide=fullframe:data=phase -an -c:v rawvideo phase.nut
-ffmpeg -i magnitude.nut -i phase.nut -lavfi spectrumsynth=channels=2:sample_rate=44100:win_fun=hann:overlap=0.875:slide=fullframe output.flac
+ffmpeg -i magnitude.nut -i phase.nut -lavfi spectrumsynth=channels=2:sample_rate=44100:win_func=hann:overlap=0.875:slide=fullframe output.flac
 @end example
 @end itemize
 

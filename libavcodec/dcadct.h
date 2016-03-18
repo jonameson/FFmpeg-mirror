@@ -1,4 +1,6 @@
 /*
+ * Copyright (C) 2016 foo86
+ *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -16,15 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVCODEC_X86_DIRAC_DWT_H
-#define AVCODEC_X86_DIRAC_DWT_H
+#ifndef AVCODEC_DCADCT_H
+#define AVCODEC_DCADCT_H
 
-#include "libavcodec/dirac_dwt.h"
+#include "libavutil/common.h"
 
-void ff_horizontal_compose_dd97i_end_c(IDWTELEM *b, IDWTELEM *tmp, int w2, int x);
-void ff_horizontal_compose_haar1i_end_c(IDWTELEM *b, IDWTELEM *tmp, int w2, int x);
-void ff_horizontal_compose_haar0i_end_c(IDWTELEM *b, IDWTELEM *tmp, int w2, int x);
+typedef struct DCADCTContext {
+    void (*imdct_half[2])(int32_t *output, const int32_t *input);
+} DCADCTContext;
 
-void ff_spatial_idwt_init_mmx(DWTContext *d, enum dwt_type type);
+av_cold void ff_dcadct_init(DCADCTContext *c);
 
 #endif

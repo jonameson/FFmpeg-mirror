@@ -315,6 +315,7 @@ enum AVCodecID {
     AV_CODEC_ID_SMVJPEG,
     AV_CODEC_ID_APNG,
     AV_CODEC_ID_DAALA,
+    AV_CODEC_ID_CFHD,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -1907,15 +1908,15 @@ typedef struct AVCodecContext {
      * - decoding: Set by user (or 0).
      */
     int slice_count;
-    /**
-     * prediction method (needed for huffyuv)
-     * - encoding: Set by user.
-     * - decoding: unused
-     */
+
+#if FF_API_PRIVATE_OPT
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
      int prediction_method;
 #define FF_PRED_LEFT   0
 #define FF_PRED_PLANE  1
 #define FF_PRED_MEDIAN 2
+#endif
 
     /**
      * slice offsets in the frame in bytes
@@ -1988,12 +1989,11 @@ typedef struct AVCodecContext {
      */
     int last_predictor_count;
 
-    /**
-     * prepass for motion estimation
-     * - encoding: Set by user.
-     * - decoding: unused
-     */
+#if FF_API_PRIVATE_OPT
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
     int pre_me;
+#endif
 
     /**
      * motion estimation prepass comparison function
@@ -2169,12 +2169,13 @@ typedef struct AVCodecContext {
      */
     int mb_lmax;
 
+#if FF_API_PRIVATE_OPT
     /**
-     *
-     * - encoding: Set by user.
-     * - decoding: unused
+     * @deprecated use encoder private options instead
      */
+    attribute_deprecated
     int me_penalty_compensation;
+#endif
 
     /**
      *
@@ -2620,24 +2621,19 @@ typedef struct AVCodecContext {
      */
     int trellis;
 
-    /**
-     * - encoding: Set by user.
-     * - decoding: unused
-     */
+#if FF_API_PRIVATE_OPT
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
     int min_prediction_order;
 
-    /**
-     * - encoding: Set by user.
-     * - decoding: unused
-     */
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
     int max_prediction_order;
 
-    /**
-     * GOP timecode frame start number
-     * - encoding: Set by user, in non drop frame format
-     * - decoding: Set by libavcodec (timecode in the 25 bits format, -1 if unset)
-     */
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
     int64_t timecode_frame_start;
+#endif
 
 #if FF_API_RTP_CALLBACK
     /**
@@ -2653,12 +2649,16 @@ typedef struct AVCodecContext {
     void (*rtp_callback)(struct AVCodecContext *avctx, void *data, int size, int mb_nb);
 #endif
 
+#if FF_API_PRIVATE_OPT
+    /** @deprecated use encoder private options instead */
+    attribute_deprecated
     int rtp_payload_size;   /* The size of the RTP payload: the coder will  */
                             /* do its best to deliver a chunk with size     */
                             /* below rtp_payload_size, the chunk will start */
                             /* with a start code on some codecs like H.263. */
                             /* This doesn't take account of any particular  */
                             /* headers inside the transmitted RTP payload.  */
+#endif
 
 #if FF_API_STAT_BITS
     /* statistics, used for 2-pass encoding */

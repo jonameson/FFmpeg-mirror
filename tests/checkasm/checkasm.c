@@ -68,11 +68,13 @@ static const struct {
     #if CONFIG_ALAC_DECODER
         { "alacdsp", checkasm_check_alacdsp },
     #endif
+    #if CONFIG_BLEND_FILTER
+        { "vf_blend", checkasm_check_blend },
+    #endif
     #if CONFIG_BSWAPDSP
         { "bswapdsp", checkasm_check_bswapdsp },
     #endif
     #if CONFIG_DCA_DECODER
-        { "dcadsp", checkasm_check_dcadsp },
         { "synth_filter", checkasm_check_synth_filter },
     #endif
     #if CONFIG_FLACDSP

@@ -59,6 +59,7 @@ void avfilter_register_all(void)
     REGISTER_FILTER(ALIMITER,       alimiter,       af);
     REGISTER_FILTER(ALLPASS,        allpass,        af);
     REGISTER_FILTER(AMERGE,         amerge,         af);
+    REGISTER_FILTER(AMETADATA,      ametadata,      af);
     REGISTER_FILTER(AMIX,           amix,           af);
     REGISTER_FILTER(ANEQUALIZER,    anequalizer,    af);
     REGISTER_FILTER(ANULL,          anull,          af);
@@ -78,6 +79,7 @@ void avfilter_register_all(void)
     REGISTER_FILTER(ASHOWINFO,      ashowinfo,      af);
     REGISTER_FILTER(ASPLIT,         asplit,         af);
     REGISTER_FILTER(ASTATS,         astats,         af);
+    REGISTER_FILTER(ASTREAMSELECT,  astreamselect,  af);
     REGISTER_FILTER(ASYNCTS,        asyncts,        af);
     REGISTER_FILTER(ATEMPO,         atempo,         af);
     REGISTER_FILTER(ATRIM,          atrim,          af);
@@ -206,8 +208,10 @@ void avfilter_register_all(void)
     REGISTER_FILTER(MASKEDMERGE,    maskedmerge,    vf);
     REGISTER_FILTER(MCDEINT,        mcdeint,        vf);
     REGISTER_FILTER(MERGEPLANES,    mergeplanes,    vf);
+    REGISTER_FILTER(METADATA,       metadata,       vf);
     REGISTER_FILTER(MPDECIMATE,     mpdecimate,     vf);
     REGISTER_FILTER(NEGATE,         negate,         vf);
+    REGISTER_FILTER(NNEDI,          nnedi,          vf);
     REGISTER_FILTER(NOFORMAT,       noformat,       vf);
     REGISTER_FILTER(NOISE,          noise,          vf);
     REGISTER_FILTER(NULL,           null,           vf);
@@ -256,8 +260,10 @@ void avfilter_register_all(void)
     REGISTER_FILTER(SPP,            spp,            vf);
     REGISTER_FILTER(SSIM,           ssim,           vf);
     REGISTER_FILTER(STEREO3D,       stereo3d,       vf);
+    REGISTER_FILTER(STREAMSELECT,   streamselect,   vf);
     REGISTER_FILTER(SUBTITLES,      subtitles,      vf);
     REGISTER_FILTER(SUPER2XSAI,     super2xsai,     vf);
+    REGISTER_FILTER(SWAPRECT,       swaprect,       vf);
     REGISTER_FILTER(SWAPUV,         swapuv,         vf);
     REGISTER_FILTER(TBLEND,         tblend,         vf);
     REGISTER_FILTER(TELECINE,       telecine,       vf);

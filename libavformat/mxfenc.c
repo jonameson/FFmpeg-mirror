@@ -1016,7 +1016,7 @@ static void mxf_write_cdci_common(AVFormatContext *s, AVStream *st, const UID ke
     int stored_height = (st->codec->height+15)/16*16;
     int display_height;
     int f1, f2;
-    unsigned desc_size = size+8+8+8+8+8+8+8+5+16+sc->interlaced*4+12+20+5;
+    unsigned desc_size = size+8+8+8+8+8+8+8+5+16+4+12+20+5;
     if (sc->interlaced && sc->field_dominance)
         desc_size += 5;
     if (sc->signal_standard)
@@ -1084,12 +1084,12 @@ static void mxf_write_cdci_common(AVFormatContext *s, AVStream *st, const UID ke
         f1 *= 2;
     }
 
-    mxf_write_local_tag(pb, 12+sc->interlaced*4, 0x320D);
-    avio_wb32(pb, sc->interlaced ? 2 : 1);
+
+    mxf_write_local_tag(pb, 16, 0x320D);
+    avio_wb32(pb, 2);
     avio_wb32(pb, 4);
     avio_wb32(pb, f1);
-    if (sc->interlaced)
-        avio_wb32(pb, f2);
+    avio_wb32(pb, f2);
 
     mxf_write_local_tag(pb, 8, 0x320E);
     avio_wb32(pb, sc->aspect_ratio.num);
@@ -2044,7 +2044,6 @@ static int mxf_write_header(AVFormatContext *s)
     int i, ret;
     uint8_t present[FF_ARRAY_ELEMS(mxf_essence_container_uls)] = {0};
     const MXFSamplesPerFrame *spf = NULL;
-    AVDictionaryEntry *t;
     int64_t timestamp = 0;
 
     if (!s->nb_streams)
@@ -2215,9 +2214,7 @@ static int mxf_write_header(AVFormatContext *s)
             sc->order = AV_RB32(sc->track_essence_element_key+12);
     }
 
-    if (t = av_dict_get(s->metadata, "creation_time", NULL, 0))
-        timestamp = ff_iso8601_to_unix_time(t->value);
-    if (timestamp)
+    if (ff_parse_creation_time_metadata(s, &timestamp, 1) > 0)
         mxf->timestamp = mxf_parse_timestamp(timestamp);
     mxf->duration = -1;
 

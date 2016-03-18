@@ -154,6 +154,7 @@ const PixelFormatTag ff_raw_pix_fmt_tags[] = {
     { AV_PIX_FMT_YUVA422P,    MKTAG('Y', '4', 10 ,  8 ) },
     { AV_PIX_FMT_YUVA444P,    MKTAG('Y', '4',  0 ,  8 ) },
     { AV_PIX_FMT_YA8,         MKTAG('Y', '2',  0 ,  8 ) },
+    { AV_PIX_FMT_PAL8,        MKTAG('P', 'A', 'L',  8 ) },
 
     { AV_PIX_FMT_YUVA420P9LE,  MKTAG('Y', '4', 11 ,  9 ) },
     { AV_PIX_FMT_YUVA420P9BE,  MKTAG( 9 , 11 , '4', 'Y') },
@@ -282,7 +283,7 @@ unsigned int avcodec_pix_fmt_to_codec_tag(enum AVPixelFormat fmt)
 }
 
 const PixelFormatTag avpriv_pix_fmt_bps_avi[] = {
-    { AV_PIX_FMT_MONOWHITE, 1 },
+    { AV_PIX_FMT_PAL8,    1 },
     { AV_PIX_FMT_PAL8,    2 },
     { AV_PIX_FMT_PAL8,    4 },
     { AV_PIX_FMT_PAL8,    8 },

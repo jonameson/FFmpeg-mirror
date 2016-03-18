@@ -357,6 +357,7 @@ FF_DISABLE_DEPRECATION_WARNINGS
     dst->qscale_table = NULL;
     dst->qstride      = 0;
     dst->qscale_type  = 0;
+    av_buffer_unref(&dst->qp_table_buf);
     if (src->qp_table_buf) {
         dst->qp_table_buf = av_buffer_ref(src->qp_table_buf);
         if (dst->qp_table_buf) {
@@ -733,6 +734,7 @@ const char *av_frame_side_data_name(enum AVFrameSideDataType type)
     case AV_FRAME_DATA_SKIP_SAMPLES:    return "Skip samples";
     case AV_FRAME_DATA_AUDIO_SERVICE_TYPE:          return "Audio service type";
     case AV_FRAME_DATA_MASTERING_DISPLAY_METADATA:  return "Mastering display metadata";
+    case AV_FRAME_DATA_GOP_TIMECODE:                return "GOP timecode";
     }
     return NULL;
 }
